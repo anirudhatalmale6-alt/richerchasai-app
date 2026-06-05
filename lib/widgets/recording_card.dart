@@ -8,6 +8,7 @@ class RecordingCard extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onPlay;
   final VoidCallback onDelete;
+  final VoidCallback? onEnhance;
 
   const RecordingCard({
     super.key,
@@ -15,6 +16,7 @@ class RecordingCard extends StatelessWidget {
     required this.isPlaying,
     required this.onPlay,
     required this.onDelete,
+    this.onEnhance,
   });
 
   @override
@@ -70,6 +72,16 @@ class RecordingCard extends StatelessWidget {
               ],
             ),
           ),
+
+          // Enhance
+          if (onEnhance != null)
+            GestureDetector(
+              onTap: onEnhance,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: const Icon(Icons.auto_fix_high_rounded, color: AppColors.violet, size: 20),
+              ),
+            ),
 
           // Delete
           GestureDetector(

@@ -6,6 +6,8 @@ import '../theme/app_theme.dart';
 import '../services/recording_service.dart';
 import '../widgets/waveform_painter.dart';
 import '../widgets/recording_card.dart';
+import 'enhance_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -139,6 +141,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const Spacer(),
                   _formatToggle(),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                    child: Container(
+                      width: 38, height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.bgCard,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Icon(Icons.settings_rounded, color: AppColors.textMuted, size: 18),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -346,6 +361,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       isPlaying: isPlaying,
                       onPlay: () => _playRecording(file.path),
                       onDelete: () => _deleteRecording(file.path),
+                      onEnhance: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EnhanceScreen(recording: file))),
                     );
                   },
                 ),

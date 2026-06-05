@@ -5,7 +5,9 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Richerchasai</string>
+	<string>RiCherChasAI</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>RiCherChasAI requires access to your microphone to capture raw high-fidelity audio for local processing and optional cloud AI enhancement.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
