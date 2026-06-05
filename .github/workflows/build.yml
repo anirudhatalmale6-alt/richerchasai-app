@@ -38,19 +38,20 @@ jobs:
       - name: Build App Bundle
         run: flutter build appbundle --release
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: richerchasai-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
+      - name: Rename APK
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk RiCherChasAI-Android.apk
+          cp build/app/outputs/bundle/release/app-release.aab RiCherChasAI-Android.aab
 
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: richerchasai-android-aab
-          path: build/app/outputs/bundle/release/app-release.aab
-          retention-days: 30
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          draft: true
+          files: |
+            RiCherChasAI-Android.apk
+            RiCherChasAI-Android.aab
 
   build-ios:
     runs-on: macos-latest
@@ -101,12 +102,13 @@ jobs:
           cp -R Runner.app Payload/
           zip -r /tmp/RiCherChasAI.ipa Payload/
 
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
+      - name: Upload IPA to Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: richerchasai-ios-ipa
-          path: /tmp/RiCherChasAI.ipa
-          retention-days: 30
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          draft: true
+          files: /tmp/RiCherChasAI.ipa
 
       - name: Cleanup keychain
         if: always()
@@ -115,43 +117,3 @@ jobs:
             security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
           fi
 
-  create-release:
-    needs: [build-android, build-ios]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: richerchasai-android-apk
-          path: artifacts/
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: richerchasai-android-aab
-          path: artifacts/
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: richerchasai-ios-ipa
-          path: artifacts/
-
-      - name: Rename artifacts
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          mv artifacts/app-release.apk "artifacts/RiCherChasAI-${VERSION}-Android.apk" 2>/dev/null || true
-          mv artifacts/app-release.aab "artifacts/RiCherChasAI-${VERSION}-Android.aab" 2>/dev/null || true
-          mv artifacts/RiCherChasAI.ipa "artifacts/RiCherChasAI-${VERSION}-iOS.ipa" 2>/dev/null || true
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: RiCherChasAI v${{ github.event.inputs.version }}
-          body: |
-            RiCherChasAI Voice Recorder v${{ github.event.inputs.version }}
-
-            - Professional voice recording (WAV/MP3)
-            - On-device AI noise removal
-            - Auphonic cloud AI enhancement
-            - Dark Electric Pulse theme
-          files: artifacts/*
