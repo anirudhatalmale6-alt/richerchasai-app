@@ -24,19 +24,9 @@ class _EnhanceScreenState extends State<EnhanceScreen> {
 
   Future<void> _enhance() async {
     final prefs = await SharedPreferences.getInstance();
-    final apiToken = prefs.getString('auphonic_token') ?? '';
-
-    if (apiToken.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Auphonic API token not set. Go to Settings.'),
-            backgroundColor: AppColors.recording,
-          ),
-        );
-      }
-      return;
-    }
+    final apiToken = prefs.getString('auphonic_token')?.isNotEmpty == true
+        ? prefs.getString('auphonic_token')!
+        : AuphonicService.defaultToken;
 
     setState(() { _isProcessing = true; _progress = 0; _statusText = 'Starting...'; });
 

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 class AuphonicService {
   static const _baseUrl = 'https://auphonic.com/api';
+  static const defaultToken = 'MBxX4YegpbqGPO8uM0vdnEIBKqKJHZ58';
   final String _apiToken;
 
   AuphonicService(this._apiToken);
