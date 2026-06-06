@@ -53,7 +53,17 @@ class _EnhanceScreenState extends State<EnhanceScreen> {
         _progress = 1.0;
       });
     } catch (e) {
-      setState(() { _isProcessing = false; _statusText = 'Error: $e'; _progress = 0; });
+      debugPrint('Auphonic enhance error: $e');
+      if (mounted) {
+        setState(() { _isProcessing = false; _statusText = 'Error: $e'; _progress = 0; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Enhancement failed: $e', maxLines: 3),
+            backgroundColor: AppColors.recording,
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
     }
   }
 
