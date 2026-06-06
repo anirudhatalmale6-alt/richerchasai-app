@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../services/auphonic_service.dart';
 
@@ -23,15 +22,11 @@ class _EnhanceScreenState extends State<EnhanceScreen> {
   File? _enhancedFile;
 
   Future<void> _enhance() async {
-    final prefs = await SharedPreferences.getInstance();
-    final apiToken = prefs.getString('auphonic_token')?.isNotEmpty == true
-        ? prefs.getString('auphonic_token')!
-        : AuphonicService.defaultToken;
-
     setState(() { _isProcessing = true; _progress = 0; _statusText = 'Starting...'; });
 
     try {
-      final service = AuphonicService(apiToken);
+      final jwtToken = await AuphonicService.getOrCreateToken();
+      final service = AuphonicService(jwtToken);
       final dir = await getApplicationDocumentsDirectory();
       final ext = _outputFormat == 'mp3' ? 'mp3' : 'wav';
       final originalName = widget.recording.path.split('/').last.split('.').first;

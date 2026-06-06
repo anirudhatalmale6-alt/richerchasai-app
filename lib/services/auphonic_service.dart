@@ -2,76 +2,34 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuphonicService {
-  static const _baseUrl = 'https://auphonic.com/api';
-  static const defaultToken = 'MBxX4YegpbqGPO8uM0vdnEIBKqKJHZ58';
-  final String _apiToken;
+  static const _gatewayUrl = 'https://api.richerchasai.com';
 
-  AuphonicService(this._apiToken);
+  final String _jwtToken;
 
-  Future<Map<String, dynamic>> _createProduction({
-    String title = 'RiCherChasAI Recording',
-    String outputFormat = 'wav',
-  }) async {
-    final uri = Uri.parse('$_baseUrl/productions.json');
+  AuphonicService(this._jwtToken);
+
+  static Future<String> getOrCreateToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    var token = prefs.getString('gateway_token');
+    if (token != null && token.isNotEmpty) return token;
+
+    final deviceId = prefs.getString('device_id') ?? DateTime.now().millisecondsSinceEpoch.toString();
+    prefs.setString('device_id', deviceId);
+
     final response = await http.post(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $_apiToken',
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'metadata': {'title': title},
-        'output_files': [
-          {
-            'format': outputFormat == 'mp3' ? 'mp3' : 'wav',
-            'bitrate': '320',
-          }
-        ],
-        'algorithms': {
-          'denoise': true,
-          'hipfilter': true,
-          'leveler': true,
-          'loudnesstarget': -16.0,
-          'normloudness': true,
-        },
-      }),
+      Uri.parse('$_gatewayUrl/api/auth/token'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'userId': deviceId, 'isPro': true}),
     );
-    debugPrint('Auphonic create production: ${response.statusCode}');
-    return json.decode(response.body) as Map<String, dynamic>;
-  }
-
-  Future<Map<String, dynamic>> _uploadFile(String uuid, String filePath) async {
-    final uri = Uri.parse('$_baseUrl/production/$uuid/upload.json');
-    final request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer $_apiToken'
-      ..files.add(await http.MultipartFile.fromPath('input_file', filePath));
-
-    final response = await request.send();
-    final body = await response.stream.bytesToString();
-    debugPrint('Auphonic upload: ${response.statusCode}');
-    return json.decode(body) as Map<String, dynamic>;
-  }
-
-  Future<Map<String, dynamic>> _startProduction(String uuid) async {
-    final uri = Uri.parse('$_baseUrl/production/$uuid/start.json');
-    final response = await http.post(uri, headers: {'Authorization': 'Bearer $_apiToken'});
-    debugPrint('Auphonic start: ${response.statusCode}');
-    return json.decode(response.body) as Map<String, dynamic>;
-  }
-
-  Future<Map<String, dynamic>> _getStatus(String uuid) async {
-    final uri = Uri.parse('$_baseUrl/production/$uuid.json');
-    final response = await http.get(uri, headers: {'Authorization': 'Bearer $_apiToken'});
-    return json.decode(response.body) as Map<String, dynamic>;
-  }
-
-  Future<File> _downloadResult(String url, String savePath) async {
-    final response = await http.get(Uri.parse(url), headers: {'Authorization': 'Bearer $_apiToken'});
-    final file = File(savePath);
-    await file.writeAsBytes(response.bodyBytes);
-    return file;
+    if (response.statusCode == 200) {
+      token = json.decode(response.body)['token'] as String;
+      await prefs.setString('gateway_token', token);
+      return token;
+    }
+    throw Exception('Failed to get auth token');
   }
 
   Future<Map<String, dynamic>> enhanceRecording({
@@ -80,55 +38,62 @@ class AuphonicService {
     String outputFormat = 'wav',
     Function(String status, double progress)? onProgress,
   }) async {
-    onProgress?.call('Creating production...', 0.05);
+    onProgress?.call('Uploading to cloud...', 0.1);
 
-    final production = await _createProduction(outputFormat: outputFormat);
-    final uuid = production['data']?['uuid'] as String?;
-    if (uuid == null) {
-      throw Exception('Failed to create production: ${production['error_message'] ?? json.encode(production)}');
+    final request = http.MultipartRequest('POST', Uri.parse('$_gatewayUrl/api/enhance'))
+      ..headers['Authorization'] = 'Bearer $_jwtToken'
+      ..fields['format'] = outputFormat
+      ..files.add(await http.MultipartFile.fromPath('audio', filePath));
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+    final data = json.decode(body) as Map<String, dynamic>;
+
+    if (response.statusCode != 200 || data['success'] != true) {
+      throw Exception(data['error'] ?? 'Enhancement failed');
     }
-    debugPrint('Production created: $uuid');
 
-    onProgress?.call('Uploading audio...', 0.1);
-    final uploadResult = await _uploadFile(uuid, filePath);
-    if (uploadResult['status_code'] != 200) {
-      throw Exception('Upload failed: ${uploadResult['error_message'] ?? json.encode(uploadResult)}');
-    }
+    final productionId = data['production_id'] as String;
+    debugPrint('Production started: $productionId');
 
-    onProgress?.call('Starting processing...', 0.25);
-    await _startProduction(uuid);
+    onProgress?.call('Processing with AI...', 0.3);
 
     for (int i = 0; i < 120; i++) {
       await Future.delayed(const Duration(seconds: 3));
-      final status = await _getStatus(uuid);
-      final statusCode = status['data']?['status'] as int? ?? 0;
-      final statusString = status['data']?['status_string'] as String? ?? 'Processing';
 
-      final progress = 0.25 + (i / 120) * 0.6;
+      final statusRes = await http.get(
+        Uri.parse('$_gatewayUrl/api/enhance/$productionId/status'),
+        headers: {'Authorization': 'Bearer $_jwtToken'},
+      );
+      final statusData = json.decode(statusRes.body) as Map<String, dynamic>;
+      final statusString = statusData['status_string'] as String? ?? 'Processing';
+      final complete = statusData['complete'] as bool? ?? false;
+
+      final progress = 0.3 + (i / 120) * 0.5;
       onProgress?.call(statusString, progress);
-      debugPrint('Auphonic status: $statusCode - $statusString');
 
-      // 3 = Done
-      if (statusCode == 3) {
-        final outputFiles = status['data']?['output_files'] as List?;
-        if (outputFiles == null || outputFiles.isEmpty) {
-          throw Exception('No output files in completed production');
-        }
-        final outputUrl = outputFiles[0]['download_url'] as String?;
-        if (outputUrl == null) throw Exception('No download URL');
-
+      if (complete) {
         onProgress?.call('Downloading enhanced audio...', 0.9);
-        final result = await _downloadResult(outputUrl, savePath);
-        onProgress?.call('Complete!', 1.0);
-        return {'file': result, 'status': status['data']};
+
+        final downloadRes = await http.get(
+          Uri.parse('$_gatewayUrl/api/enhance/$productionId/download'),
+          headers: {'Authorization': 'Bearer $_jwtToken'},
+        );
+
+        if (downloadRes.statusCode == 200) {
+          final file = File(savePath);
+          await file.writeAsBytes(downloadRes.bodyBytes);
+          onProgress?.call('Complete!', 1.0);
+          return {'file': file};
+        }
+        throw Exception('Download failed');
       }
 
-      // >= 10 = Error states
-      if (statusCode >= 10) {
-        throw Exception('Processing failed: $statusString (code: $statusCode)');
+      if (statusData['error'] != null) {
+        throw Exception('Processing failed: ${statusData['error']}');
       }
     }
 
-    throw Exception('Processing timed out after 6 minutes');
+    throw Exception('Processing timed out');
   }
 }
