@@ -362,6 +362,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       onPlay: () => _playRecording(file.path),
                       onDelete: () => _deleteRecording(file.path),
                       onEnhance: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EnhanceScreen(recording: file))).then((_) => _loadRecordings()),
+                      onRenamed: (_) => _loadRecordings(),
                     );
                   },
                 ),

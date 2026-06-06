@@ -11,6 +11,7 @@ class RecordingCard extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onDelete;
   final VoidCallback? onEnhance;
+  final Function(String newPath)? onRenamed;
 
   const RecordingCard({
     super.key,
@@ -19,6 +20,7 @@ class RecordingCard extends StatelessWidget {
     required this.onPlay,
     required this.onDelete,
     this.onEnhance,
+    this.onRenamed,
   });
 
   @override
@@ -57,12 +59,21 @@ class RecordingCard extends StatelessWidget {
           ),
           const SizedBox(width: 14),
 
-          // Info
+          // Info (tap name to rename)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textMain), maxLines: 1, overflow: TextOverflow.ellipsis),
+                GestureDetector(
+                  onTap: () => _renameFile(context),
+                  child: Row(
+                    children: [
+                      Flexible(child: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textMain), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.edit_rounded, size: 12, color: AppColors.textMuted),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -124,6 +135,59 @@ class RecordingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
+    );
+  }
+
+  void _renameFile(BuildContext context) {
+    final currentName = file.path.split('/').last;
+    final nameWithoutExt = currentName.contains('.') ? currentName.substring(0, currentName.lastIndexOf('.')) : currentName;
+    final ext = currentName.contains('.') ? currentName.substring(currentName.lastIndexOf('.')) : '';
+    final controller = TextEditingController(text: nameWithoutExt);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Rename Recording', style: TextStyle(color: AppColors.textMain)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: AppColors.textMain),
+          decoration: InputDecoration(
+            suffixText: ext,
+            suffixStyle: const TextStyle(color: AppColors.textMuted),
+            filled: true,
+            fillColor: AppColors.bg,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.violet)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty && newName != nameWithoutExt) {
+                final dir = file.parent.path;
+                final newPath = '$dir/$newName$ext';
+                try {
+                  await file.rename(newPath);
+                  onRenamed?.call(newPath);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Rename failed: $e'), backgroundColor: AppColors.recording));
+                  }
+                }
+              } else {
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Rename', style: TextStyle(color: AppColors.violet)),
+          ),
+        ],
+      ),
     );
   }
 
