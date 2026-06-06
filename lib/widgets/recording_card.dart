@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../theme/app_theme.dart';
 
 class RecordingCard extends StatelessWidget {
@@ -70,6 +71,15 @@ class RecordingCard extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+
+          // Share
+          GestureDetector(
+            onTap: () => Share.shareXFiles([XFile(file.path)], text: 'Recorded with RiCherChasAI'),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.share_rounded, color: AppColors.mint, size: 20),
             ),
           ),
 
