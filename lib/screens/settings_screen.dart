@@ -1,45 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  final _tokenController = TextEditingController();
-  bool _isPro = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    _tokenController.text = prefs.getString('auphonic_token') ?? '';
-    setState(() => _isPro = prefs.getBool('is_pro') ?? false);
-  }
-
-  Future<void> _saveToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auphonic_token', _tokenController.text.trim());
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API token saved'), backgroundColor: AppColors.mint),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _tokenController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,60 +21,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: _isPro
-                    ? [AppColors.violet.withValues(alpha: 0.15), AppColors.mint.withValues(alpha: 0.08)]
-                    : [AppColors.bgCard, AppColors.bgCard],
+                colors: [AppColors.violet.withValues(alpha: 0.15), AppColors.mint.withValues(alpha: 0.08)],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _isPro ? AppColors.violet.withValues(alpha: 0.3) : AppColors.border),
+              border: Border.all(color: AppColors.violet.withValues(alpha: 0.3)),
             ),
-            child: Column(
+            child: const Column(
               children: [
-                Icon(_isPro ? Icons.workspace_premium_rounded : Icons.mic_rounded,
-                    color: _isPro ? AppColors.violet : AppColors.textMuted, size: 40),
-                const SizedBox(height: 12),
-                Text(_isPro ? 'Studio Pro' : 'Basic Audio',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: _isPro ? AppColors.violet : AppColors.textMain)),
-                const SizedBox(height: 4),
-                Text(_isPro ? 'Cloud AI enhancement active' : 'Free local processing',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                Icon(Icons.workspace_premium_rounded, color: AppColors.violet, size: 40),
+                SizedBox(height: 12),
+                Text('Studio Pro', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.violet)),
+                SizedBox(height: 4),
+                Text('Cloud AI enhancement active', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
               ],
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // API Token
-          const Text('Cloud AI Configuration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textMain)),
+          // Cloud AI info
+          const Text('Cloud AI Enhancement', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textMain)),
           const SizedBox(height: 8),
-          const Text('Enter your Auphonic API token to enable cloud-based audio enhancement.',
-              style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          const SizedBox(height: 16),
-
-          TextField(
-            controller: _tokenController,
-            style: const TextStyle(color: AppColors.textMain, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'Paste Auphonic API token',
-              hintStyle: const TextStyle(color: AppColors.bgSurface),
-              filled: true,
-              fillColor: AppColors.bgCard,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.violet)),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
             ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saveToken,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.violet,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Save Token', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: AppColors.mint, size: 18),
+                    SizedBox(width: 8),
+                    Text('Dereverberation', style: TextStyle(fontSize: 13, color: AppColors.textMain)),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: AppColors.mint, size: 18),
+                    SizedBox(width: 8),
+                    Text('AI Noise Reduction', style: TextStyle(fontSize: 13, color: AppColors.textMain)),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: AppColors.mint, size: 18),
+                    SizedBox(width: 8),
+                    Text('Loudness Normalization (-16 LUFS)', style: TextStyle(fontSize: 13, color: AppColors.textMain)),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: AppColors.mint, size: 18),
+                    SizedBox(width: 8),
+                    Text('Voice AutoEQ', style: TextStyle(fontSize: 13, color: AppColors.textMain)),
+                  ],
+                ),
+                SizedBox(height: 12),
+                Text('All processing happens securely in the cloud. Your recordings are encrypted during transfer and deleted after processing.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              ],
             ),
           ),
 
@@ -120,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // About
           const Text('About', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textMain)),
           const SizedBox(height: 12),
-          _aboutItem('Version', '1.0.0'),
+          _aboutItem('Version', '1.3.0'),
           _aboutItem('Developer', 'mediaXtreme LLC'),
           _aboutItem('Contact', 'legal@richerchasai.com'),
         ],
