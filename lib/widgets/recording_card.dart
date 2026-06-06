@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import '../theme/app_theme.dart';
 
 class RecordingCard extends StatelessWidget {
@@ -74,6 +75,15 @@ class RecordingCard extends StatelessWidget {
             ),
           ),
 
+          // Save to Downloads
+          GestureDetector(
+            onTap: () => _saveToDownloads(context),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.save_alt_rounded, color: AppColors.textMuted, size: 20),
+            ),
+          ),
+
           // Share
           GestureDetector(
             onTap: () => Share.shareXFiles([XFile(file.path)], text: 'Recorded with RiCherChasAI'),
@@ -115,6 +125,28 @@ class RecordingCard extends StatelessWidget {
       ),
       child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
     );
+  }
+
+  Future<void> _saveToDownloads(BuildContext context) async {
+    try {
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      final iosDocsDir = await getApplicationDocumentsDirectory();
+      final targetDir = Platform.isAndroid ? downloadsDir : iosDocsDir;
+      final fileName = file.path.split('/').last;
+      final targetPath = '${targetDir.path}/$fileName';
+      await file.copy(targetPath);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Saved to ${Platform.isAndroid ? "Downloads" : "Files"}: $fileName'), backgroundColor: AppColors.mint),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $e'), backgroundColor: AppColors.recording),
+        );
+      }
+    }
   }
 
   String _formatSize(int bytes) {
